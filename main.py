@@ -9,12 +9,48 @@ from rich.console import Console
 from rich.markdown import Markdown
 from datetime import datetime
 from pathlib import Path
-
-# Initialize Rich Console
-console = Console()
+import faiss
+import numpy as np
+from langchain_openai.embeddings import OpenAIEmbeddings
 
 # Load environment variables
 load_dotenv()
+
+# Load OpenAI API key
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if not openai_api_key:
+    raise ValueError("OPENAI_API_KEY is not set. Please configure it.")
+
+# Initialize FAISS index and metadata storage
+embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+
+dimension = 1536  # Dimensions for OpenAI's text-embedding-ada-002
+index = faiss.IndexFlatL2(dimension)
+metadata_store = {}  # Dictionary to store metadata
+
+
+# Add to FAISS
+def add_to_faiss(role, content):
+    vector = np.array(embeddings.embed_query(content)).astype("float32").reshape(1, -1)
+    vector_id = index.ntotal  # Use the current total number of vectors as the ID
+    index.add(vector)
+    metadata_store[vector_id] = {"role": role, "content": content}
+    print(f"Added {role} message to FAISS index.")
+
+
+# Retrieve from FAISS
+def retrieve_relevant_chats(query, k=3):
+    vector = np.array(embeddings.embed_query(query)).astype("float32").reshape(1, -1)
+    distances, indices = index.search(vector, k)
+    results = [
+        metadata_store[i]
+        for i in indices[0] if i != -1 and i in metadata_store
+    ]
+    return results
+
+
+# Initialize Rich Console
+console = Console()
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description="Wrighter Chat with Markdown Toggle")
@@ -25,15 +61,10 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-# Load OpenAI API key
-openai_api_key = os.getenv("OPENAI_API_KEY")
-if not openai_api_key:
-    raise ValueError("OPENAI_API_KEY is not set. Please configure it.")
-
 # Initialize the LLM using OpenAI Chat Models
 llm = ChatOpenAI(
     temperature=0.7,  # Adjust creativity
-    model="gpt-4",    # Specify the OpenAI model
+    model="gpt-4",  # Specify the OpenAI model
 )
 
 # Define a prompt template
@@ -48,7 +79,6 @@ chain = RunnableMap({
     "output": llm,
 })
 
-# Directory for chat history
 history_dir = Path("chat_history")
 
 
@@ -74,7 +104,6 @@ def save_message(role, content):
 
 if __name__ == "__main__":
     console.print("[bold green]Welcome to Wrighter Chat! Type 'exit' to quit.")
-    console.print("[bold cyan]Type '!toggle-markdown' to enable or disable Markdown rendering.[/bold cyan]")
     markdown_enabled = args.disable_markdown
 
     while True:
@@ -90,10 +119,19 @@ if __name__ == "__main__":
             continue
 
         save_message("user", user_input)
-        # Generate a response using the chain
-        response = chain.invoke([HumanMessage(user_input)])
+        add_to_faiss("user", user_input)
+
+        # Retrieve relevant past chats
+        relevant_chats = retrieve_relevant_chats(user_input, k=3)
+        context = "\n".join([f"{chat['role']}: {chat['content']}" for chat in relevant_chats])
+
+        # Combine context with user input
+        full_prompt = f"{context}\nUser: {user_input}"
+        response = chain.invoke([HumanMessage(full_prompt)])
         txt = response["output"].content
+
         save_message("assistant", txt)
+        add_to_faiss("assistant", txt)
 
         # Render response based on toggle state
         console.print("[bold yellow]Assistant:[/bold yellow]")
