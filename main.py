@@ -12,6 +12,16 @@ from pathlib import Path
 import faiss
 import numpy as np
 from langchain_openai.embeddings import OpenAIEmbeddings
+import logging
+import sys
+
+# Configure logging to stderr
+logging.basicConfig(
+    stream=sys.stderr,  # Direct logs to stderr
+    level=logging.INFO,  # Set the log level
+    format="%(asctime)s - %(levelname)s - %(message)s"  # Log format
+)
+
 
 # Load environment variables
 load_dotenv()
@@ -35,7 +45,7 @@ def add_to_faiss(role, content):
     vector_id = index.ntotal  # Use the current total number of vectors as the ID
     index.add(vector)
     metadata_store[vector_id] = {"role": role, "content": content}
-    print(f"Added {role} message to FAISS index.")
+    logging.info(f"Added {role} message to FAISS index.")
 
 
 # Retrieve from FAISS
@@ -99,7 +109,7 @@ def save_message(role, content):
         file.write(f"---\ntimestamp: {timestamp}\nrole: {role}\n---\n\n")
         file.write(content)
 
-    print(f"Saved {role} message to {filename}")
+    logging.info(f"Saved {role} message to {filename}")
 
 
 if __name__ == "__main__":
