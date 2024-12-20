@@ -7,6 +7,8 @@ from langchain.schema.messages import HumanMessage
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.markdown import Markdown
+from datetime import datetime
+from pathlib import Path
 
 # Initialize Rich Console
 console = Console()
@@ -46,6 +48,30 @@ chain = RunnableMap({
     "output": llm,
 })
 
+# Directory for chat history
+history_dir = Path("chat_history")
+
+
+# Save a message to a Markdown file
+def save_message(role, content):
+    # Get current timestamp
+    timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+
+    # Create subdirectories for year and month
+    subdir = history_dir / datetime.now().strftime("%Y/%m")
+    subdir.mkdir(parents=True, exist_ok=True)
+
+    # Define the filename
+    filename = subdir / f"{timestamp}-{role}.md"
+
+    # Write content to the Markdown file
+    with open(filename, "w") as file:
+        file.write(f"---\ntimestamp: {timestamp}\nrole: {role}\n---\n\n")
+        file.write(content)
+
+    print(f"Saved {role} message to {filename}")
+
+
 if __name__ == "__main__":
     console.print("[bold green]Welcome to Wrighter Chat! Type 'exit' to quit.")
     console.print("[bold cyan]Type '!toggle-markdown' to enable or disable Markdown rendering.[/bold cyan]")
@@ -63,13 +89,16 @@ if __name__ == "__main__":
             console.print(f"[bold magenta]Markdown rendering {status}.[/bold magenta]")
             continue
 
+        save_message("user", user_input)
         # Generate a response using the chain
         response = chain.invoke([HumanMessage(user_input)])
+        txt = response["output"].content
+        save_message("assistant", txt)
 
         # Render response based on toggle state
         console.print("[bold yellow]Assistant:[/bold yellow]")
         if markdown_enabled:
-            markdown_response = Markdown(response["output"].content)
+            markdown_response = Markdown(txt)
             console.print(markdown_response)
         else:
-            console.print(response["output"].content)
+            console.print(txt)
