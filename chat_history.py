@@ -1,5 +1,7 @@
 from datetime import datetime
 from pathlib import Path
+import glob
+
 import logging
 
 history_dir = Path("chat_history")
@@ -22,3 +24,7 @@ def save_message(role, content):
         file.write(content)
 
     logging.info(f"Saved {role} message to {filename}")
+
+
+def all_messages():
+    return glob.glob(f"{history_dir}/**/*.md", recursive=True)

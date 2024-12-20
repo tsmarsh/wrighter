@@ -11,8 +11,8 @@ import logging
 import sys
 
 # Configure logging to stderr
-from chat_history import save_message
-from search import add_to_search, retrieve_relevant_chats
+from chat_history import save_message, all_messages
+from search import add_to_search, retrieve_relevant_chats, load_files
 
 load_dotenv()
 
@@ -61,6 +61,7 @@ chain = RunnableMap({
 if __name__ == "__main__":
     console.print("[bold green]Welcome to Wrighter Chat! Type 'exit' to quit.")
     markdown_enabled = args.disable_markdown
+    load_files(all_messages())
 
     while True:
         user_input = console.input("[bold blue]You:[/bold blue] ")
