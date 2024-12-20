@@ -15,11 +15,11 @@ console = Console()
 load_dotenv()
 
 # Parse command-line arguments
-parser = argparse.ArgumentParser(description="Wrighter Chat without Markdown Rendering")
+parser = argparse.ArgumentParser(description="Wrighter Chat with Markdown Toggle")
 parser.add_argument(
     "--disable-markdown",
     action="store_false",
-    help="Disable Markdown rendering in the TUI."
+    help="Start with Markdown rendering disabled."
 )
 args = parser.parse_args()
 
@@ -47,7 +47,8 @@ chain = RunnableMap({
 })
 
 if __name__ == "__main__":
-    console.print("[bold green]Welcome to Wrighter Chat! Type 'exit' to quit.[/bold green]")
+    console.print("[bold green]Welcome to Wrighter Chat! Type 'exit' to quit.")
+    console.print("[bold cyan]Type '!toggle-markdown' to enable or disable Markdown rendering.[/bold cyan]")
     markdown_enabled = args.disable_markdown
 
     while True:
@@ -56,10 +57,16 @@ if __name__ == "__main__":
             console.print("[bold red]Goodbye![/bold red]")
             break
 
+        if user_input.lower() == "!toggle-markdown":
+            markdown_enabled = not markdown_enabled
+            status = "enabled" if markdown_enabled else "disabled"
+            console.print(f"[bold magenta]Markdown rendering {status}.[/bold magenta]")
+            continue
+
         # Generate a response using the chain
         response = chain.invoke([HumanMessage(user_input)])
 
-        # Render response based on feature flag
+        # Render response based on toggle state
         console.print("[bold yellow]Assistant:[/bold yellow]")
         if markdown_enabled:
             markdown_response = Markdown(response["output"].content)
