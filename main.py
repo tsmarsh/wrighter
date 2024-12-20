@@ -4,6 +4,11 @@ from langchain_openai import ChatOpenAI
 from langchain.schema.runnable import RunnableMap
 from langchain.schema.messages import HumanMessage
 from dotenv import load_dotenv
+from rich.console import Console
+from rich.markdown import Markdown
+
+# Initialize Rich Console
+console = Console()
 
 load_dotenv()
 
@@ -31,13 +36,17 @@ chain = RunnableMap({
 })
 
 if __name__ == "__main__":
-    print("Welcome to Wrighter Chat! Type 'exit' to quit.")
+    console.print("[bold green]Welcome to Wrighter Chat! Type 'exit' to quit.[/bold green]")
     while True:
-        user_input = input("You: ")
+        user_input = console.input("[bold blue]You:[/bold blue] ")
         if user_input.lower() in {"exit", "quit"}:
-            print("Goodbye!")
+            console.print("[bold red]Goodbye![/bold red]")
             break
 
         # Generate a response using the chain
         response = chain.invoke([HumanMessage(user_input)])
-        print(f"Assistant: {response['output'].content}")
+        markdown_response = Markdown(response["output"].content)
+
+        # Render Markdown in the terminal
+        console.print("[bold yellow]Assistant:[/bold yellow]")
+        console.print(markdown_response)
