@@ -2,3 +2,6 @@ venv/
 .idea/
 .env
 chat_history/
+__pycache__/
+*.py[cod]
+*$py.class
