@@ -79,7 +79,7 @@ if __name__ == "__main__":
         add_to_search("user", user_input)
 
         # Retrieve relevant past chats
-        relevant_chats = retrieve_relevant_chats(user_input, k=3)
+        relevant_chats = retrieve_relevant_x`chats(user_input, k=3)
         context = "\n".join([f"{chat['role']}: {chat['content']}" for chat in relevant_chats])
 
         # Combine context with user input
